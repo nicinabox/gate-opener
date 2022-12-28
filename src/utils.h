@@ -1,30 +1,29 @@
-int const INTERVAL = 1000;
-long lastStateCheck = 0;
-volatile int prevState = HIGH;
-long prevMillis = 0;
+long _lastStateCheck = 0;
+volatile int _prevState = HIGH;
+long _prevMillis = 0;
 
 void setTimeout(void (*callback)(), int interval) {
   unsigned long currentMillis = millis();
 
-  if (currentMillis - prevMillis > interval) {
-    prevMillis = currentMillis;
+  if (currentMillis - _prevMillis > interval) {
+    _prevMillis = currentMillis;
     callback();
   }
 }
 
 bool didStateChange(int state) {
-  return prevState != state;
+  return _prevState != state;
 }
 
-void listenForStateChange(int (*getState)(), void (*onStateChange)(int state)) {
+void listenForStateChange(int (*getState)(), void (*onStateChange)(int state), int interval) {
   unsigned long currentStateCheck = millis();
 
-  if (currentStateCheck - lastStateCheck > INTERVAL) {
-    lastStateCheck = currentStateCheck;
+  if (currentStateCheck - _lastStateCheck > interval) {
+    _lastStateCheck = currentStateCheck;
     int state = getState();
 
     if (didStateChange(state)) {
-      prevState = state;
+      _prevState = state;
       onStateChange(state);
     }
   }

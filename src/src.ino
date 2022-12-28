@@ -6,8 +6,9 @@
 WiFiClient wifiClient;
 PubSubClient pubclient(MQTT_HOST, MQTT_PORT, wifiClient);
 
-int state = DOOR_UNKNOWN_VALUE;
-int targetState = DOOR_UNKNOWN_VALUE;
+volatile int prevState = DOOR_UNKNOWN_VALUE;
+volatile int state = DOOR_UNKNOWN_VALUE;
+volatile int targetState = DOOR_UNKNOWN_VALUE;
 
 void setRelayState(int state) {
     digitalWrite(RELAY_PIN, state);
@@ -16,6 +17,12 @@ void setRelayState(int state) {
 void setLEDState() {
     int sensorState = digitalRead(SENSOR_CLOSED_PIN);
     digitalWrite(LED_PIN, sensorState);
+}
+
+void setState(int nextState) {
+    prevState = state;
+    state = nextState;
+    pubclient.publish(MQTT_TOPIC_CURRENT_STATE, (const char *) state);
 }
 
 void cycleRelay() {
@@ -31,6 +38,41 @@ int readSensor() {
 
     // invert to match homekit states
     return 1 - value;
+}
+
+int getTargetState(int currentState) {
+  switch(currentState) {
+    case DOOR_CLOSED_VALUE:
+      return DOOR_OPEN_VALUE;
+
+    case DOOR_OPEN_VALUE:
+      return DOOR_CLOSED_VALUE;
+
+    case DOOR_CLOSING_VALUE:
+    case DOOR_OPENING_VALUE:
+      return DOOR_STOPPED_VALUE;
+
+    // Reverse direction
+    case DOOR_STOPPED_VALUE:
+      if (prevState == DOOR_OPENING_VALUE) return DOOR_CLOSED_VALUE;
+      if (prevState == DOOR_CLOSING_VALUE) return DOOR_OPEN_VALUE;
+
+    default:
+      return DOOR_UNKNOWN_VALUE;
+  }
+}
+
+int getTransitionState(int currentState) {
+  switch(currentState) {
+    case DOOR_CLOSED_VALUE:
+      return DOOR_OPENING_VALUE;
+
+    case DOOR_OPEN_VALUE:
+      return DOOR_CLOSING_VALUE;
+
+    default:
+      return currentState;
+  }
 }
 
 int getNextState(int currentState) {
@@ -52,15 +94,42 @@ int getNextState(int currentState) {
   }
 }
 
-void onSensorChange(int sensorState) {
-    state = sensorState;
-
-    // Notify homekit that the state changed externally
-    pubclient.publish(MQTT_TOPIC_TARGET_STATE, (const char*) state);
+void onOpen() {
+  if (state == DOOR_OPENING_VALUE)
+  {
+      setState(DOOR_OPEN_VALUE);
+  }
 }
 
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
+void onSensorChange(int sensorState) {
+  // Opened from HomeKit
+  if (targetState == DOOR_OPEN_VALUE)
+    {
+      // Defer open state
+      setState(getTransitionState(state));
+      return;
+  }
+
+  // Opened externally
+  if (state == DOOR_CLOSED_VALUE)
+  {
+    targetState = sensorState;
+    pubclient.publish(MQTT_TOPIC_TARGET_STATE, (const char *) targetState);
+    setState(getTransitionState(state));
+    return;
+  }
+
+  // Closed externally or from HomeKit
+  if (sensorState == DOOR_CLOSED_VALUE) {
+    targetState = sensorState;
+    pubclient.publish(MQTT_TOPIC_TARGET_STATE, (const char *)targetState);
+    setState(sensorState);
+    return;
+  }
+}
+
+void onMessageReceived(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message received [");
   Serial.print(topic);
   Serial.print("] ");
 
@@ -71,9 +140,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (topic == MQTT_TOPIC_TARGET_STATE) {
       targetState = (int) payload;
-      state = getNextState(state);
-      pubclient.publish(MQTT_TOPIC_CURRENT_STATE, (const char*) state);
-
       cycleRelay();
   }
 }
@@ -118,7 +184,7 @@ void setup() {
     Serial.begin(115200);
 
     awaitWifiConnected();
-    pubclient.setCallback(callback);
+    pubclient.setCallback(onMessageReceived);
 
     pinMode(LED_PIN, OUTPUT);
     setLEDState();
@@ -129,6 +195,7 @@ void setup() {
     pinMode(SENSOR_CLOSED_PIN, INPUT_PULLUP);
 
     state = readSensor();
+    prevState = state;
     targetState = state;
 
     onSensorChange(state);
@@ -141,5 +208,9 @@ void loop() {
         reconnect();
     }
 
-    listenForStateChange(&readSensor, &onSensorChange);
+    listenForStateChange(&readSensor, &onSensorChange, 1000);
+
+    if (state == DOOR_OPENING_VALUE) {
+      setTimeout(&onOpen, DOOR_OPENING_TIME_MS);
+    }
 }
