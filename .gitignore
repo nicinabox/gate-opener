@@ -1,3 +1,6 @@
 .vscode
 config*.h
 !config.example.h
+debug.cfg
+debug*.json
+*.svd

@@ -1,4 +1,11 @@
+#if defined(ESP8266)
 #include <ESP8266WiFi.h>
+#elif defined(ESP32)
+#include <WiFi.h>
+#else
+#error Only ESP32 or ESP8266 are supported.
+#endif
+
 #include <PubSubClient.h>
 #include "utils.h"
 #include "config.h"
