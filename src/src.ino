@@ -84,6 +84,10 @@ int getTransitionState(int currentState) {
     case DOOR_OPEN:
       return DOOR_CLOSING;
 
+    case DOOR_STOPPED:
+      if (prevState == DOOR_OPEN) return DOOR_OPENING;
+      if (prevState == DOOR_CLOSED) return DOOR_CLOSING;
+
     default:
       return currentState;
   }
