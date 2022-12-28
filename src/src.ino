@@ -6,9 +6,16 @@
 WiFiClient wifiClient;
 PubSubClient pubclient(MQTT_HOST, MQTT_PORT, wifiClient);
 
-volatile int prevState = DOOR_UNKNOWN_VALUE;
-volatile int state = DOOR_UNKNOWN_VALUE;
-volatile int targetState = DOOR_UNKNOWN_VALUE;
+const int DOOR_OPEN = 0;
+const int DOOR_CLOSED = 1;
+const int DOOR_OPENING = 2;
+const int DOOR_CLOSING = 3;
+const int DOOR_STOPPED = 4;
+const int DOOR_UNKNOWN = 5;
+
+volatile int prevState = DOOR_UNKNOWN;
+volatile int state = DOOR_UNKNOWN;
+volatile int targetState = DOOR_UNKNOWN;
 
 void setRelayState(int state) {
     digitalWrite(RELAY_PIN, state);
@@ -42,33 +49,33 @@ int readSensor() {
 
 int getTargetState(int currentState) {
   switch(currentState) {
-    case DOOR_CLOSED_VALUE:
-      return DOOR_OPEN_VALUE;
+    case DOOR_CLOSED:
+      return DOOR_OPEN;
 
-    case DOOR_OPEN_VALUE:
-      return DOOR_CLOSED_VALUE;
+    case DOOR_OPEN:
+      return DOOR_CLOSED;
 
-    case DOOR_CLOSING_VALUE:
-    case DOOR_OPENING_VALUE:
-      return DOOR_STOPPED_VALUE;
+    case DOOR_CLOSING:
+    case DOOR_OPENING:
+      return DOOR_STOPPED;
 
     // Reverse direction
-    case DOOR_STOPPED_VALUE:
-      if (prevState == DOOR_OPENING_VALUE) return DOOR_CLOSED_VALUE;
-      if (prevState == DOOR_CLOSING_VALUE) return DOOR_OPEN_VALUE;
+    case DOOR_STOPPED:
+      if (prevState == DOOR_OPENING) return DOOR_CLOSED;
+      if (prevState == DOOR_CLOSING) return DOOR_OPEN;
 
     default:
-      return DOOR_UNKNOWN_VALUE;
+      return DOOR_UNKNOWN;
   }
 }
 
 int getTransitionState(int currentState) {
   switch(currentState) {
-    case DOOR_CLOSED_VALUE:
-      return DOOR_OPENING_VALUE;
+    case DOOR_CLOSED:
+      return DOOR_OPENING;
 
-    case DOOR_OPEN_VALUE:
-      return DOOR_CLOSING_VALUE;
+    case DOOR_OPEN:
+      return DOOR_CLOSING;
 
     default:
       return currentState;
@@ -77,33 +84,33 @@ int getTransitionState(int currentState) {
 
 int getNextState(int currentState) {
   switch(currentState) {
-    case DOOR_CLOSED_VALUE:
-      return DOOR_OPENING_VALUE;
+    case DOOR_CLOSED:
+      return DOOR_OPENING;
 
-    case DOOR_OPEN_VALUE:
-      return DOOR_CLOSING_VALUE;
+    case DOOR_OPEN:
+      return DOOR_CLOSING;
 
-    case DOOR_CLOSING_VALUE:
-      return DOOR_CLOSED_VALUE;
+    case DOOR_CLOSING:
+      return DOOR_CLOSED;
 
-    case DOOR_OPENING_VALUE:
-      return DOOR_OPEN_VALUE;
+    case DOOR_OPENING:
+      return DOOR_OPEN;
 
     default:
-      return DOOR_UNKNOWN_VALUE;
+      return DOOR_UNKNOWN;
   }
 }
 
 void onOpen() {
-  if (state == DOOR_OPENING_VALUE)
+  if (state == DOOR_OPENING)
   {
-      setState(DOOR_OPEN_VALUE);
+      setState(DOOR_OPEN);
   }
 }
 
 void onSensorChange(int sensorState) {
   // Opened from HomeKit
-  if (targetState == DOOR_OPEN_VALUE)
+  if (targetState == DOOR_OPEN)
     {
       // Defer open state
       setState(getTransitionState(state));
@@ -111,7 +118,7 @@ void onSensorChange(int sensorState) {
   }
 
   // Opened externally
-  if (state == DOOR_CLOSED_VALUE)
+  if (state == DOOR_CLOSED)
   {
     targetState = sensorState;
     pubclient.publish(MQTT_TOPIC_TARGET_STATE, (const char *) targetState);
@@ -120,7 +127,7 @@ void onSensorChange(int sensorState) {
   }
 
   // Closed externally or from HomeKit
-  if (sensorState == DOOR_CLOSED_VALUE) {
+  if (sensorState == DOOR_CLOSED) {
     targetState = sensorState;
     pubclient.publish(MQTT_TOPIC_TARGET_STATE, (const char *)targetState);
     setState(sensorState);
@@ -210,7 +217,7 @@ void loop() {
 
     listenForStateChange(&readSensor, &onSensorChange, 1000);
 
-    if (state == DOOR_OPENING_VALUE) {
+    if (state == DOOR_OPENING) {
       setTimeout(&onOpen, DOOR_OPENING_TIME_MS);
     }
 }

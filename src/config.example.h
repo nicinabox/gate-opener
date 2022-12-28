@@ -13,14 +13,9 @@
 #define MQTT_PASS ""
 
 #define MQTT_TOPIC_CONNECTED "stat/connected"
-#define MQTT_TOPIC_TARGET_STATE "stat/state/target"
-#define MQTT_TOPIC_CURRENT_STATE "stat/state/current"
+#define MQTT_TOPIC_TARGET_STATE "stat/target"
+#define MQTT_TOPIC_CURRENT_STATE "stat/current"
 
-#define DOOR_OPEN_VALUE 0
-#define DOOR_CLOSED_VALUE 1
-#define DOOR_OPENING_VALUE 2
-#define DOOR_CLOSING_VALUE 3
-#define DOOR_STOPPED_VALUE 4
-#define DOOR_UNKNOWN_VALUE 5
+#define DOOR_OPENING_TIME_MS 10000
 
 #define WDT_TIMEOUT 5000
