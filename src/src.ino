@@ -33,10 +33,23 @@ void setLEDState() {
     digitalWrite(LED_PIN, sensorState);
 }
 
+void publish(char * topic, int value) {
+    char payload[16];
+    itoa(value, payload, 10);
+
+    Serial.print("Publish message [");
+    Serial.print(topic);
+    Serial.print("] ");
+    Serial.println(payload);
+
+    pubclient.publish(topic, payload);
+}
+
 void setState(int nextState) {
     prevState = state;
     state = nextState;
-    pubclient.publish(MQTT_TOPIC_CURRENT_STATE, (const char *) state);
+    setLEDState();
+    publish(MQTT_TOPIC_CURRENT_STATE, state);
 }
 
 void cycleRelay() {
@@ -93,25 +106,6 @@ int getTransitionState(int currentState) {
   }
 }
 
-int getNextState(int currentState) {
-  switch(currentState) {
-    case DOOR_CLOSED:
-      return DOOR_OPENING;
-
-    case DOOR_OPEN:
-      return DOOR_CLOSING;
-
-    case DOOR_CLOSING:
-      return DOOR_CLOSED;
-
-    case DOOR_OPENING:
-      return DOOR_OPEN;
-
-    default:
-      return DOOR_UNKNOWN;
-  }
-}
-
 void onOpen() {
   if (state == DOOR_OPENING)
   {
@@ -120,45 +114,37 @@ void onOpen() {
 }
 
 void onSensorChange(int sensorState) {
-  // Opened from HomeKit
-  if (targetState == DOOR_OPEN)
-    {
-      // Defer open state
+  targetState = sensorState;
+  publish(MQTT_TOPIC_TARGET_STATE, sensorState);
+
+  // Defer open state
+  if (state == DOOR_CLOSED && sensorState == DOOR_OPEN) {
       setState(getTransitionState(state));
       return;
   }
 
-  // Opened externally
-  if (state == DOOR_CLOSED)
-  {
-    targetState = sensorState;
-    pubclient.publish(MQTT_TOPIC_TARGET_STATE, (const char *) targetState);
-    setState(getTransitionState(state));
-    return;
-  }
-
-  // Closed externally or from HomeKit
-  if (sensorState == DOOR_CLOSED) {
-    targetState = sensorState;
-    pubclient.publish(MQTT_TOPIC_TARGET_STATE, (const char *)targetState);
-    setState(sensorState);
-    return;
-  }
+  setState(sensorState);
 }
 
-void onMessageReceived(char* topic, byte* payload, unsigned int length) {
+void onMessageReceived(char *topic, byte *payload, unsigned int length)
+{
   Serial.print("Message received [");
   Serial.print(topic);
   Serial.print("] ");
 
-  for (int i=0;i<length;i++) {
-    Serial.print((char)payload[i]);
+  String message = "";
+  for (size_t i=0; i<length; i++) {
+    message += (char)payload[i];
   }
-  Serial.println();
+  Serial.println(message);
 
-  if (topic == MQTT_TOPIC_TARGET_STATE) {
-      targetState = (int) payload;
+  if (strcmp(topic, MQTT_TOPIC_TARGET_STATE) == 0)
+  {
+    int nextTargetState = message.toInt();
+    if (nextTargetState != targetState) {
+      targetState = nextTargetState;
       cycleRelay();
+    }
   }
 }
 
@@ -179,8 +165,8 @@ void awaitWifiConnected() {
   Serial.println(WiFi.localIP());
 }
 
-void reconnect() {
-  // Loop until we"re reconnected
+void awaitMQTTConnected() {
+  // Loop until reconnected
   while (!pubclient.connected()) {
     Serial.print("Trying MQTT connection...");
     // Attempt to connect
@@ -201,32 +187,31 @@ void reconnect() {
 void setup() {
     Serial.begin(115200);
 
-    awaitWifiConnected();
     pubclient.setCallback(onMessageReceived);
 
+    awaitWifiConnected();
+    awaitMQTTConnected();
+
     pinMode(LED_PIN, OUTPUT);
-    setLEDState();
-
     pinMode(RELAY_PIN, OUTPUT);
-    digitalWrite(RELAY_PIN, LOW);
-
-    pinMode(SENSOR_CLOSED_PIN, INPUT_PULLUP);
+    pinMode(SENSOR_CLOSED_PIN, INPUT);
 
     state = readSensor();
     prevState = state;
     targetState = state;
 
-    onSensorChange(state);
+    digitalWrite(RELAY_PIN, LOW);
+    setLEDState();
 }
 
 void loop() {
     pubclient.loop();
 
     if (!pubclient.connected()) {
-        reconnect();
+        awaitMQTTConnected();
     }
 
-    listenForStateChange(&readSensor, &onSensorChange, 1000);
+    listenForStateChange(&readSensor, &onSensorChange, DOOR_UNKNOWN);
 
     if (state == DOOR_OPENING) {
       setTimeout(&onOpen, DOOR_OPENING_TIME_MS);

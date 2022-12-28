@@ -1,30 +1,26 @@
-long _lastStateCheck = 0;
-volatile int _prevState = HIGH;
-long _prevMillis = 0;
+int _prevState = -1;
 
-void setTimeout(void (*callback)(), int interval) {
-  unsigned long currentMillis = millis();
+long timeoutDelay = 0;
 
-  if (currentMillis - _prevMillis > interval) {
-    _prevMillis = currentMillis;
+void setTimeout(void (*callback)(), int delay) {
+  if (!timeoutDelay) {
+    timeoutDelay = millis() + delay;
+  }
+
+  if (millis() >= timeoutDelay) {
+    timeoutDelay = 0;
     callback();
   }
 }
 
-bool didStateChange(int state) {
-  return _prevState != state;
-}
+void listenForStateChange(int (*getState)(), void (*onStateChange)(int state), int initialState) {
+  int state = getState();
 
-void listenForStateChange(int (*getState)(), void (*onStateChange)(int state), int interval) {
-  unsigned long currentStateCheck = millis();
+  if (_prevState == -1) _prevState = initialState;
 
-  if (currentStateCheck - _lastStateCheck > interval) {
-    _lastStateCheck = currentStateCheck;
-    int state = getState();
-
-    if (didStateChange(state)) {
-      _prevState = state;
-      onStateChange(state);
-    }
+  if (_prevState != state)
+  {
+    _prevState = state;
+    onStateChange(state);
   }
 }
