@@ -115,7 +115,7 @@ void onOpen() {
 
 void onSensorChange(int sensorState) {
   targetState = sensorState;
-  publish(MQTT_TOPIC_TARGET_STATE, sensorState);
+  publish(MQTT_TOPIC_GET_TARGET_STATE, sensorState);
 
   // Defer open state
   if (state == DOOR_CLOSED && sensorState == DOOR_OPEN) {
@@ -138,7 +138,7 @@ void onMessageReceived(char *topic, byte *payload, unsigned int length)
   }
   Serial.println(message);
 
-  if (strcmp(topic, MQTT_TOPIC_TARGET_STATE) == 0)
+  if (strcmp(topic, MQTT_TOPIC_SET_TARGET_STATE) == 0)
   {
     int nextTargetState = message.toInt();
     if (nextTargetState != targetState) {
@@ -173,7 +173,7 @@ void awaitMQTTConnected() {
     if (pubclient.connect(HOSTNAME)) {
       Serial.println("connected");
       pubclient.publish(MQTT_TOPIC_CONNECTED, "true");
-      pubclient.subscribe(MQTT_TOPIC_TARGET_STATE);
+      pubclient.subscribe(MQTT_TOPIC_SET_TARGET_STATE);
     } else {
       Serial.print("failed, rc=");
       Serial.print(pubclient.state());
