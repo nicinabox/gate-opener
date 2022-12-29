@@ -2,6 +2,8 @@
 #define LED_PIN 13
 #define SENSOR_CLOSED_PIN 5
 
+#define SENSOR_PIN_MODE INPUT_PULLUP
+
 #define WIFI_SSID ""
 #define WIFI_PASSWORD ""
 

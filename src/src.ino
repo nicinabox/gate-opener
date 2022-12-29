@@ -194,7 +194,7 @@ void setup() {
 
     pinMode(LED_PIN, OUTPUT);
     pinMode(RELAY_PIN, OUTPUT);
-    pinMode(SENSOR_CLOSED_PIN, INPUT);
+    pinMode(SENSOR_CLOSED_PIN, SENSOR_PIN_MODE);
 
     state = readSensor();
     prevState = state;
