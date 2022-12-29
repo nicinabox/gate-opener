@@ -1,5 +1,5 @@
 int _prevState = -1;
-
+long prevMillis = 0;
 long timeoutDelay = 0;
 
 void setTimeout(void (*callback)(), int delay) {
@@ -13,14 +13,18 @@ void setTimeout(void (*callback)(), int delay) {
   }
 }
 
-void listenForStateChange(int (*getState)(), void (*onStateChange)(int state), int initialState) {
-  int state = getState();
+void listenForStateChange(int (*getState)(), void (*onStateChange)(int state), int debounceInterval) {
+  unsigned long currentMillis = millis();
 
-  if (_prevState == -1) _prevState = initialState;
-
-  if (_prevState != state)
+  if (currentMillis - prevMillis > debounceInterval)
   {
-    _prevState = state;
-    onStateChange(state);
+    prevMillis = currentMillis;
+    int state = getState();
+
+    if (_prevState != state)
+    {
+      _prevState = state;
+      onStateChange(state);
+    }
   }
 }

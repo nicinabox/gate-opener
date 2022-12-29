@@ -211,7 +211,7 @@ void loop() {
         awaitMQTTConnected();
     }
 
-    listenForStateChange(&readSensor, &onSensorChange, DOOR_UNKNOWN);
+    listenForStateChange(&readSensor, &onSensorChange, 1000);
 
     if (state == DOOR_OPENING) {
       setTimeout(&onOpen, DOOR_OPENING_TIME_MS);
