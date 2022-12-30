@@ -1,5 +1,7 @@
 # gate-opener
 
+Implements HomeKit GarageDoor for Homebridge. For use with `homebridge-mqttthing`.
+
 ## Setup
 
 ```
