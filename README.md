@@ -31,3 +31,7 @@ Designed for use with ESP8266, specifically Sonoff SV.
 1. Plugin USB
 2. In Arduino editor press Upload
 3. When "Connecting..." hold down BOOT button until flashing begins
+
+## License
+
+MIT. See LICENSE.txt.
