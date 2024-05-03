@@ -180,6 +180,9 @@ void awaitWifiConnected() {
   }
 
   Serial.println(WiFi.localIP());
+
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(true);
 }
 
 void awaitMQTTConnected() {
