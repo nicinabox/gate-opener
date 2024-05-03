@@ -169,12 +169,25 @@ void awaitMQTTConnected() {
   // Loop until reconnected
   while (!pubclient.connected()) {
     Serial.print("Trying MQTT connection...");
+
+    bool connected = pubclient.connect(
+        MQTT_CLIENT_ID,
+        MQTT_USER,
+        MQTT_PASS,
+        MQTT_LAST_WILL_TOPIC,
+        MQTT_LAST_WILL_QOS,
+        MQTT_LAST_WILL_RETAIN,
+        MQTT_LAST_WILL_MESSAGE);
+
     // Attempt to connect
-    if (pubclient.connect(HOSTNAME)) {
+    if (connected)
+    {
       Serial.println("connected");
       pubclient.publish(MQTT_TOPIC_CONNECTED, "true");
       pubclient.subscribe(MQTT_TOPIC_SET_TARGET_STATE);
-    } else {
+    }
+    else
+    {
       Serial.print("failed, rc=");
       Serial.print(pubclient.state());
       Serial.println(" try again in 5 seconds");

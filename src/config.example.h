@@ -11,8 +11,15 @@
 
 #define MQTT_HOST "0.0.0.0"
 #define MQTT_PORT 1883
-#define MQTT_NAME ""
+#define MQTT_USER ""
 #define MQTT_PASS ""
+#define MQTT_KEEP_ALIVE 15
+#define MQTT_CLIENT_ID HOSTNAME
+
+#define MQTT_LAST_WILL_TOPIC "stat/connected"
+#define MQTT_LAST_WILL_QOS 0
+#define MQTT_LAST_WILL_RETAIN true
+#define MQTT_LAST_WILL_MESSAGE "false"
 
 #define MQTT_TOPIC_CONNECTED "stat/connected"
 #define MQTT_TOPIC_CURRENT_STATE "stat/current"
