@@ -4,3 +4,4 @@ config*.h
 debug.cfg
 debug*.json
 *.svd
+mosquitto.conf

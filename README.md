@@ -32,6 +32,18 @@ Designed for use with ESP8266, specifically Sonoff SV.
 2. In Arduino editor press Upload
 3. When "Connecting..." hold down BOOT button until flashing begins
 
-## License
+### MQTT
 
-MIT. See LICENSE.txt.
+Use `mosquitto` to test MQTT locally.
+
+Run the server
+
+```
+mosquitto -c mosquitto.conf
+```
+
+Listen for the topic
+
+```
+mosquitto_sub -v -h localhost -t '#'
+```

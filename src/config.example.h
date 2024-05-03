@@ -1,8 +1,16 @@
+#if defined(ESP32)
+#define RELAY_PIN 13
+#define LED_PIN 2
+#define SENSOR_CLOSED_PIN 5
+#define SENSOR_PIN_MODE INPUT
+#endif
+
+#if defined(ESP8266)
 #define RELAY_PIN 12
 #define LED_PIN 13
 #define SENSOR_CLOSED_PIN 5
-
 #define SENSOR_PIN_MODE INPUT_PULLUP
+#endif
 
 #define WIFI_SSID ""
 #define WIFI_PASSWORD ""
