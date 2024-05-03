@@ -6,6 +6,7 @@
 #error Only ESP32 or ESP8266 are supported.
 #endif
 
+#include <ArduinoOTA.h>
 #include <PubSubClient.h>
 #include "utils.h"
 #include "config.h"
@@ -225,6 +226,8 @@ void setup() {
     awaitWifiConnected();
     awaitMQTTConnected();
 
+    ArduinoOTA.begin();
+
     pinMode(LED_PIN, OUTPUT);
     pinMode(RELAY_PIN, OUTPUT);
     pinMode(SENSOR_CLOSED_PIN, SENSOR_PIN_MODE);
@@ -237,21 +240,21 @@ void setup() {
     setLEDState();
 }
 
-void loop() {
-  if (wifiMulti.run() != WL_CONNECTED)
+void loop()
+{
+  ArduinoOTA.handle();
+
+  pubclient.loop();
+
+  if (!pubclient.connected())
   {
-    awaitWifiConnected();
+    awaitMQTTConnected();
   }
 
-    pubclient.loop();
+  listenForStateChange(&readSensor, &onSensorChange, 1000);
 
-    if (!pubclient.connected()) {
-        awaitMQTTConnected();
-    }
-
-    listenForStateChange(&readSensor, &onSensorChange, 1000);
-
-    if (state == DOOR_OPENING) {
-      setTimeout(&onOpen, DOOR_OPENING_TIME_MS);
-    }
+  if (state == DOOR_OPENING)
+  {
+    setTimeout(&onOpen, DOOR_OPENING_TIME_MS);
+  }
 }
