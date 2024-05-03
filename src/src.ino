@@ -143,10 +143,25 @@ void onMessageReceived(char *topic, byte *payload, unsigned int length)
   if (strcmp(topic, MQTT_TOPIC_SET_TARGET_STATE) == 0)
   {
     int nextTargetState = message.toInt();
-    if (nextTargetState != targetState) {
-      targetState = nextTargetState;
+
+    if (nextTargetState == targetState)
+      return;
+    targetState = nextTargetState;
+
+    if (state == DOOR_STOPPED)
+    {
+      publish(MQTT_TOPIC_GET_TARGET_STATE, getTargetState(state));
+      setState(getTransitionState(state));
       cycleRelay();
+      return;
     }
+
+    if (state == DOOR_CLOSING || state == DOOR_OPENING)
+    {
+      setState(DOOR_STOPPED);
+    }
+
+    cycleRelay();
   }
 }
 
@@ -220,6 +235,11 @@ void setup() {
 }
 
 void loop() {
+  if (wifiMulti.run() != WL_CONNECTED)
+  {
+    awaitWifiConnected();
+  }
+
     pubclient.loop();
 
     if (!pubclient.connected()) {
