@@ -1,5 +1,6 @@
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
 #elif defined(ESP32)
 #include <WiFi.h>
 #else
@@ -172,6 +173,7 @@ void awaitWifiConnected() {
 
   WiFi.mode(WIFI_STA);
   WiFi.hostname(HOSTNAME);
+  ArduinoOTA.setHostname(HOSTNAME);
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD, 9);
 
