@@ -244,6 +244,10 @@ void setup() {
 
 void loop()
 {
+  if (WiFi.status() != WL_CONNECTED) {
+    awaitWifiConnected();
+  }
+
   ArduinoOTA.handle();
 
   pubclient.loop();
